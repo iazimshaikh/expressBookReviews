@@ -5,42 +5,36 @@ const regd_users = express.Router();
 
 let users = [];
 
-const isValid = (username)=>{ //returns boolean
-//write code to check is the username is valid
+const isValid = (username)=>{
+    return users.some(user => user.username === username);
 }
 
-const authenticatedUser = (username,password)=>{ //returns boolean
-//write code to check if username and password match the one we have in records.
+
+const authenticatedUser = (username,password)=>{
+    return users.some(user => user.username === username && user.password === password);
 }
+
 
 //only registered users can login
 regd_users.post("/login", (req,res) => {
-
  const username = req.body.username;
-  const password = req.body.password;
+    const password = req.body.password;
 
-  // Check if username and password are provided
-  if (!username || !password) {
-    return res.status(400).json({ message: "Username and password are required" });
-  }
+    if (!username || !password) {
+        return res.status(400).json({message: "Username and password are required"});
+    }
 
-  // Check if user exists and password matches
-  const user = users.find(user => user.username === username && user.password === password);
-  if (!user) {
-    return res.status(401).json({ message: "Invalid username or password" });
-  }
+    if (authenticatedUser(username,password)) {
+        let accessToken = jwt.sign({username: username}, "access", {expiresIn: "1h"});
 
-  // Generate JWT & save in session
-  let accessToken = jwt.sign(
-    { username: username },
-    "access",  // Secret key for JWT
-    { expiresIn: "1h" }
-  );
+        req.session.authorization = {
+            accessToken, username
+        };
 
-  req.session.authorization = { accessToken, username };
-
-  return res.status(200).json({ message: "Login successful", token: accessToken });
-
+        return res.status(200).json({message: "Login successful!", token: accessToken});
+    } else {
+        return res.status(401).json({message: "Invalid username or password"});
+    }
   // return res.status(300).json({message: "Yet to be implemented"});
 });
 
